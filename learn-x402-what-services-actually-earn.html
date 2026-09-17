@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What 782 x402 services actually earn — Arc Launchpad</title>
+<meta name="description" content="What 782 x402 services actually earn. Verified, dated, and sourced for builders on Circle's Arc network.">
+<link rel="canonical" href="learn-x402-what-services-actually-earn.html">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">Arc<span>Launchpad</span></div>
+  <a href="index.html">Home</a>
+  <a href="learn.html">Guides</a>
+  <a href="radar.html">Radar</a>
+  <a href="kit.html">Starter Kit</a>
+  <div class="spacer"></div>
+  <a class="btn" href="index.html#start" style="padding:9px 18px;font-size:14px">Get the radar</a>
+</div></nav>
+
+<article class="wrap prose">
+<h1 id="what-782-x402-services-actually-earn">What 782 x402 services actually earn</h1>
+<p>Everyone selling you the agent economy quotes the same headline. Nobody quotes the
+floor underneath it. Both are true, and the gap between them is the whole decision.</p>
+<p>This page is the floor, with the arithmetic done, so you can decide before you spend
+a weekend rather than after.</p>
+<h2 id="the-headline">The headline</h2>
+<p>From <a href="https://x402.org/">x402.org</a>, last 30 days, fetched 17 September 2026:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transactions</td>
+<td>75,410,000</td>
+</tr>
+<tr>
+<td>Volume</td>
+<td>$24,240,000</td>
+</tr>
+<tr>
+<td>Buyers</td>
+<td>94,060</td>
+</tr>
+<tr>
+<td>Sellers</td>
+<td>22,000</td>
+</tr>
+</tbody>
+</table>
+<p>That is a real market. It is not a whitepaper. Twenty-two thousand sellers have
+already turned up.</p>
+<h2 id="the-floor">The floor</h2>
+<p>From <a href="https://x402-list.com/">x402-list.com</a>, an independently operated directory
+that probes every listing and measures what settles, fetched 17 September 2026:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Services listed</td>
+<td>782</td>
+</tr>
+<tr>
+<td>Endpoints</td>
+<td>5,127</td>
+</tr>
+<tr>
+<td>Answering right now</td>
+<td>660 (84.4%)</td>
+</tr>
+<tr>
+<td>Offline for 30+ days</td>
+<td>47</td>
+</tr>
+<tr>
+<td><strong>Measured buyers, last 30 days</strong></td>
+<td><strong>4,778</strong></td>
+</tr>
+<tr>
+<td><strong>Measured settlement volume</strong></td>
+<td><strong>$77,972</strong></td>
+</tr>
+<tr>
+<td><strong>Measured settlements</strong></td>
+<td><strong>3,119,069</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Their own caveat, which is honest and which you should read before quoting the
+number: this is <em>"a measured floor across 551 listed services... not an ecosystem
+total"</em>, and it is 9.6% of the settlement volume they can measure across every
+facilitator snapshot they hold.</p>
+<p>So: the headline is ecosystem-wide, across all facilitators. The floor is what
+services listed in the one directory that measures them actually settled.</p>
+<h2 id="the-arithmetic-nobody-does">The arithmetic nobody does</h2>
+<p>Two divisions turn those numbers into the only figures that matter to you.</p>
+<p><strong>Volume ÷ settlements.</strong> $77,972 ÷ 3,119,069 = <strong>$0.025 per settlement.</strong></p>
+<p>The average x402 payment is two and a half cents. That is not a flaw — it is the
+entire point of the protocol, and it is what makes an agent's per-call budget work.
+But it has a consequence: to reach $10,000 you need roughly <strong>400,000 settlements</strong>.</p>
+<p><strong>Volume ÷ services, after concentration.</strong> x402-list reports that the top 10
+services take <strong>92.1%</strong> of that measured volume (as of 2026-09-17 21:38 UTC), and
+that the single largest listing is 34.8% of it — of which <strong>one buyer is 97.2%</strong>.
+That one service is, in effect, a single customer paying itself.</p>
+<p>Strip out the top 10 and the remaining 772 services share 7.9%:</p>
+<blockquote>
+<p>$77,972 × 0.079 ÷ 772 ≈ <strong>$7.98 per service, per month.</strong></p>
+</blockquote>
+<p>That is the number to sit with. The median listed x402 service earns about eight
+dollars a month. Not eight dollars per customer — eight dollars total, before you
+subtract anything.</p>
+<h2 id="and-most-of-them-stop">And most of them stop</h2>
+<p>84.4% average uptime means roughly one service in six is down at any given moment.
+122 of 782 are offline as of the measurement, and 47 of those have been offline for
+a month or more. Services get built, listed, and abandoned — which is what a market
+with a $0.025 average ticket and 92.1% concentration does to people who entered it
+expecting the headline.</p>
+<h2 id="what-this-actually-means-if-you-are-building">What this actually means if you are building</h2>
+<p>The honest reading is not "x402 is fake". It is:</p>
+<ol>
+<li><strong>The rail is real and the buyers are real.</strong> 4,778 distinct on-chain buyers in
+   30 days is 4,778 entities that have demonstrated they will pay a machine,
+   automatically, without an account. That is genuinely new.</li>
+<li><strong>A generic endpoint is worth nothing.</strong> A "hello world" API that answers 402
+   competes with 782 other listings for a share of $6,160. Do not build that.</li>
+<li><strong>The winners are not selling API calls.</strong> The volume is concentrated in a
+   handful of listings — and at least one of them is one buyer paying one seller.
+   Concentration that extreme is not a market finding customers; it is a market
+   finding a few specific relationships.</li>
+<li><strong>So the question is not "should I accept x402".</strong> It is "do I already have a
+   counterparty who wants to pay me per call". If you do, x402 removes the signup
+   friction and that is worth a great deal. If you do not, x402 does not find them
+   for you — nothing in the protocol creates demand, it only removes the excuse.</li>
+</ol>
+<h2 id="check-it-yourself">Check it yourself</h2>
+<p>Do not take our numbers. The directory is machine-readable:</p>
+<pre><code class="language-bash">curl -s 'https://x402-list.com/api/v1/services' | jq '.services | length'
+curl -s 'https://x402-list.com/llms.txt'          # what it exposes to agents
+</code></pre>
+<p>The measured totals are republished with a timestamp on their front page and
+restated in their State of x402 dataset. If the figures above have moved by the
+time you read this, theirs are current and ours are not.</p>
+<h2 id="where-this-leaves-the-arc-starter-kit">Where this leaves the Arc Starter Kit</h2>
+<p>We sell a kit for building on Arc, including the seller half of x402 — the code
+that quotes a price, verifies the payment on-chain and refuses replays. We are not
+going to pretend that module is a business. It is the plumbing. What the numbers
+above tell you is that the plumbing was never the hard part.</p>
+<p>Independent. Not affiliated with or endorsed by Circle Technology Services, LLC.
+Figures above are quoted from the sources named, with fetch dates, and are their
+measurements rather than ours. Not financial advice.</p>
+</article>
+
+<section style="border-top:1px solid var(--line)"><div class="wrap">
+  <h2>More guides</h2>
+  <ul class="clean">
+    
+    <li><a href="learn-arc-chain-id-rpc.html">Arc Chain ID and RPC endpoints (mainnet + testnet)</a></li>
+    
+    <li><a href="learn-arc-usdc-decimals.html">The Arc decimals trap: 18 vs 6, one balance</a></li>
+    
+    <li><a href="learn-erc-8183-escrow-tutorial.html">ERC-8183: build a USDC escrow job on Arc</a></li>
+    
+    <li><a href="learn-usdc-as-gas-on-arc.html">USDC is the gas token on Arc — and what that breaks</a></li>
+    
+    <li><a href="learn-x402-nanopayments-arc.html">x402 nanopayments on Arc for AI agents</a></li>
+    
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Building on Arc and want to get paid for it?</h2>
+  <p class="sub">The Opportunity Radar lists every verified programme funding Arc
+  builders right now — grants, bounties, hackathons — with links checked by hand.
+  It's free.</p>
+  <a class="btn" href="index.html#start">Get the radar</a>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="disc">
+    Independent. Not affiliated with or endorsed by Circle Technology Services,
+    LLC. Not financial, investment, legal or tax advice. Verify every claim at
+    the source link before acting.
+  </div>
+  <div><a href="learn.html">Guides</a></div>
+</div></footer>
+
+<script>
+/* Static build: no server, so the form composes an email instead of POSTing.
+   Honest fallback - it either opens a real mail client or does nothing. */
+(function(){
+  var f = document.querySelector('form[data-static]');
+  if(!f) return;
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var g = function(n){ var el = f.querySelector('[name="'+n+'"]'); return el ? el.value : ''; };
+    var to = 'a-3e7fb6a5ec436b92d5d77bf1611ee463@agents.splox.io';
+    var body = 'Email: ' + g('email') + '\nIntent: ' + g('interest') +
+               '\nNote: ' + g('note') + '\n';
+    window.location.href = 'mailto:' + to +
+      '?subject=' + encodeURIComponent('Arc Launchpad enquiry') +
+      '&body=' + encodeURIComponent(body);
+  });
+})();
+</script>
+</body></html>
