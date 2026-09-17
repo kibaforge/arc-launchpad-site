@@ -23,7 +23,7 @@
 <header class="hero" style="padding:56px 0 40px"><div class="wrap">
   <div class="eyebrow">$149 one-time</div>
   <h1 style="font-size:clamp(30px,4.4vw,46px)">The Arc Starter Kit</h1>
-  <p class="lede">The three modules every Arc app needs, written against the real network
+  <p class="lede">The four modules every Arc app needs, written against the real network
   parameters, plus the reference sheet of Arc-specific behaviour that will cost you a weekend
   if you discover it the hard way.</p>
   <a class="btn" href="#pay">Get the kit — $149</a>
@@ -89,9 +89,40 @@ if (res.status === 402) {
 </div></section>
 
 <section><div class="wrap">
+  <h2>Module 4 — Being paid over x402 (the half nobody ships)</h2>
+  <p class="sub">Every x402 sample on Arc shows an agent <i>paying</i>. Almost none show how
+  to <b>take</b> the payment. An agent economy where every agent only spends is a subsidy,
+  not an economy — so this module is the seller side, written against how the chain
+  actually behaves.</p>
+<pre>// Server: quote, then verify the money on-chain before serving anything
+const req = quote({ amount: "0.05", payTo: TILL, resource: "/paid/data",
+                    description: "One Arc gotcha sheet" });
+
+if (!req.headers["x-payment"])
+  return reply(402, challenge(req));          // price, address, nonce, expiry
+
+const verdict = await verifyPayment(req.headers["x-payment"], req);
+if (!verdict.ok) return reply(402, { error: verdict.reason });
+
+if (guard.spend(txHash)) return reply(409, { error: "already spent" });
+return reply(200, theResource);</pre>
+  <ul class="clean">
+    <li><b>Decimals handled by the emitting address.</b> 18dp natively, 6dp through the
+      ERC-20 interface, same balance. Get it wrong and you are off by 10<sup>12</sup>.</li>
+    <li><b>No confirmation loop.</b> Arc finality is deterministic — one confirmed block is
+      final. Waiting for six is latency on every sale.</li>
+    <li><b>Rate limits are retried, not refused.</b> The public RPC limits in two shapes, one
+      of which looks exactly like a real refusal.</li>
+    <li><b>Ten checks against live mainnet</b>, using transactions that really happened.
+      No keys, no funds, all reads.</li>
+  </ul>
+</div></section>
+
+<section><div class="wrap">
   <h2>Plus: the Arc gotcha reference</h2>
-  <p class="sub">The sheet we wish existed on day one. Nine behaviours that differ from vanilla
-  EVM, each one of which has cost somebody a day.</p>
+  <p class="sub">The sheet we wish existed on day one. Eleven behaviours that differ from vanilla
+  EVM, each one of which has cost somebody a day — four of them paid for against live
+  mainnet while writing Module 4.</p>
   <table>
     <tr><th>Gotcha</th><th>What it does to you</th></tr>
     <tr><td><b>USDC is the gas token</b></td><td>Your fee logic, your accounting and your UX copy all change</td></tr>
@@ -103,6 +134,9 @@ if (res.status === 402) {
     <tr><td><b>Osaka EVM baseline</b></td><td>Most contracts deploy unchanged, but check before you assume</td></tr>
     <tr><td><b>Privacy is roadmap, not shipped</b></td><td>APS is documented but explicitly "not yet available" — do not sell it</td></tr>
     <tr><td><b>Testnet vs mainnet addresses</b></td><td>Some are identical, some are not. Read the table, do not guess</td></tr>
+    <tr><td><b>The RPC rate-limits in two shapes</b></td><td>HTTP 429 <i>and</i> a JSON-RPC error reading "rate limit exceeded" — one looks like a real refusal</td></tr>
+    <tr><td><b>"Invalid params" usually means a bad address</b></td><td>41 hex digits instead of 40, and the message blames your query instead of the address</td></tr>
+    <tr><td><b>Emitter logs are 18dp; gas emits nothing</b></td><td>A ledger built from logs alone never reconciles against <code>eth_getBalance</code></td></tr>
   </table>
 </div></section>
 
@@ -112,8 +146,10 @@ if (res.status === 402) {
     <div class="card">
       <h3>In the box</h3>
       <ul class="clean">
-        <li>All three modules, TypeScript, viem + ethers adapters</li>
-        <li>Arc gotcha reference (the table above, expanded)</li>
+        <li>All four modules, TypeScript, viem + ethers adapters</li>
+        <li>The x402 <b>seller</b> module — quote, on-chain verification, replay guard</li>
+        <li>A test suite that runs against live Arc mainnet (no keys, no funds)</li>
+        <li>Arc gotcha reference (the table above, expanded to eleven)</li>
         <li>Network config for testnet + mainnet</li>
         <li>30 days of email support</li>
       </ul>
