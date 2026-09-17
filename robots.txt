@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
-Sitemap: https://kibaforge.github.io/arc-launchpad/sitemap.xml
+Sitemap: https://kibaforge.github.io/arc-launchpad-site/sitemap.xml
