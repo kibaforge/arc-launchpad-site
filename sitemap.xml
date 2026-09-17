@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-<url><loc>https://kibaforge.github.io/arc-launchpad/</loc><lastmod>2026-09-17</lastmod><priority>1.0</priority></url>
-<url><loc>https://kibaforge.github.io/arc-launchpad/radar</loc><lastmod>2026-09-17</lastmod><priority>0.9</priority></url>
-<url><loc>https://kibaforge.github.io/arc-launchpad/kit</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-<url><loc>https://kibaforge.github.io/arc-launchpad/learn</loc><lastmod>2026-09-17</lastmod><priority>0.9</priority></url>
-<url><loc>https://kibaforge.github.io/arc-launchpad/learn/arc-chain-id-rpc</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-<url><loc>https://kibaforge.github.io/arc-launchpad/learn/arc-usdc-decimals</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-<url><loc>https://kibaforge.github.io/arc-launchpad/learn/erc-8183-escrow-tutorial</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-<url><loc>https://kibaforge.github.io/arc-launchpad/learn/usdc-as-gas-on-arc</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
-<url><loc>https://kibaforge.github.io/arc-launchpad/learn/x402-nanopayments-arc</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
+<url><loc>https://kibaforge.github.io/arc-launchpad-site/</loc><lastmod>2026-09-17</lastmod><priority>1.0</priority></url>
+<url><loc>https://kibaforge.github.io/arc-launchpad-site/radar.html</loc><lastmod>2026-09-17</lastmod><priority>0.9</priority></url>
+<url><loc>https://kibaforge.github.io/arc-launchpad-site/kit.html</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
+<url><loc>https://kibaforge.github.io/arc-launchpad-site/learn.html</loc><lastmod>2026-09-17</lastmod><priority>0.9</priority></url>
+<url><loc>https://kibaforge.github.io/arc-launchpad-site/learn-arc-chain-id-rpc.html</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
+<url><loc>https://kibaforge.github.io/arc-launchpad-site/learn-arc-usdc-decimals.html</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
+<url><loc>https://kibaforge.github.io/arc-launchpad-site/learn-erc-8183-escrow-tutorial.html</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
+<url><loc>https://kibaforge.github.io/arc-launchpad-site/learn-usdc-as-gas-on-arc.html</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
+<url><loc>https://kibaforge.github.io/arc-launchpad-site/learn-x402-nanopayments-arc.html</loc><lastmod>2026-09-17</lastmod><priority>0.8</priority></url>
 </urlset>
