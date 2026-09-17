@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>USDC is the gas token on Arc — and what that breaks — Arc Launchpad</title>
+<meta name="description" content="USDC is the gas token on Arc — and what that breaks. Verified, dated, and sourced for builders on Circle's Arc network.">
+<link rel="canonical" href="learn-usdc-as-gas-on-arc.html">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">Arc<span>Launchpad</span></div>
+  <a href="index.html">Home</a>
+  <a href="learn.html">Guides</a>
+  <a href="radar.html">Radar</a>
+  <a href="kit.html">Starter Kit</a>
+  <div class="spacer"></div>
+  <a class="btn" href="index.html#start" style="padding:9px 18px;font-size:14px">Get the radar</a>
+</div></nav>
+
+<article class="wrap prose">
+<h1 id="usdc-is-the-gas-token-on-arc-and-what-that-breaks">USDC is the gas token on Arc — and what that breaks</h1>
+<p>On Arc, transaction fees are denominated in <strong>USDC</strong>. There is no ETH, no
+separate gas asset, and no second token for your users to acquire.</p>
+<p>That sounds like a pure win, and mostly it is. But it quietly invalidates a set
+of assumptions that are baked into almost every EVM codebase, and each one costs
+somebody a day.</p>
+<h2 id="the-fee-floor-is-20-gwei">The fee floor is 20 Gwei</h2>
+<p>Arc enforces a <strong>20 Gwei <code>maxFeePerGas</code> minimum</strong>. Below it, transactions may sit
+pending indefinitely or fail outright. This is the first thing that bites people
+coming from chains where the wallet picks a fee and it just works.</p>
+<pre><code class="language-ts">import { ethers } from &quot;ethers&quot;;
+
+const tx = await wallet.sendTransaction({
+  to: recipient,
+  value: ethers.parseUnits(&quot;1&quot;, 6),
+  maxFeePerGas: ethers.parseUnits(&quot;20&quot;, &quot;gwei&quot;),   // floor, not a suggestion
+  maxPriorityFeePerGas: ethers.parseUnits(&quot;1&quot;, &quot;gwei&quot;),
+});
+</code></pre>
+<p>A <code>maxPriorityFeePerGas</code> of 0 Gwei is accepted. A small tip improves inclusion
+when the network is busy.</p>
+<h2 id="fees-are-smoothed-so-they-are-predictable">Fees are smoothed, so they are predictable</h2>
+<p>Arc uses EIP-1559 pricing with <strong>EWMA smoothing</strong>: the base fee is a weighted
+moving average of recent block utilisation rather than a fresh calculation each
+block. Short traffic spikes raise the fee only slightly, and it returns to target
+quickly once load normalises.</p>
+<p>The design target is roughly <strong>$0.001 per ERC-20 transfer</strong> under normal load,
+with a hard ceiling of 20,000 Gwei bounding worst-case cost.</p>
+<p>Why this matters commercially: on most L1s you cannot quote a customer a fixed
+price per transaction, because you don't know what the fee will be. On Arc you
+can. That is the difference between "usage-based pricing, roughly" and a real
+per-transaction margin.</p>
+<h2 id="settlement-is-final-in-under-a-second">Settlement is final in under a second</h2>
+<p>Deterministic finality. Confirmed means final — no reorg window, no
+multi-confirmation loop. If you have <code>waitForTransaction(hash, 3)</code> in your code,
+delete the <code>3</code>.</p>
+<p>This is what makes Arc viable for <strong>agent micropayments</strong>: an autonomous system
+paying fractions of a cent per API call cannot wait six seconds, and it cannot
+budget against a fee that moves.</p>
+<h2 id="what-it-breaks-in-your-existing-code">What it breaks in your existing code</h2>
+<table>
+<thead>
+<tr>
+<th>Assumption</th>
+<th>Reality on Arc</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gas is paid in ETH</td>
+<td>Gas is paid in USDC</td>
+</tr>
+<tr>
+<td><code>nativeCurrency.symbol === "ETH"</code></td>
+<td>It is <code>"USDC"</code></td>
+</tr>
+<tr>
+<td>Native asset has 18 decimals and is <em>not</em> your payment token</td>
+<td>Native USDC is 18-decimal for gas accounting and 6-decimal over ERC-20 — <strong>same balance</strong></td>
+</tr>
+<tr>
+<td>You need a WETH-style wrapper to use the native asset as an ERC-20</td>
+<td>You don't; the native token satisfies <code>IERC20</code> directly</td>
+</tr>
+<tr>
+<td>Fee estimates need a buffer for volatility</td>
+<td>Fees are EWMA-smoothed; volatility is designed out</td>
+</tr>
+</tbody>
+</table>
+<p>The decimals row is the dangerous one, and it has its own page:
+<a href="learn-arc-usdc-decimals.html">the Arc decimals trap</a>.</p>
+<h2 id="two-more-that-catch-indexers">Two more that catch indexers</h2>
+<p><strong>A system emitter logs every USDC transfer</strong> at
+<code>0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE</code>. An indexer watching only the ERC-20
+address <strong>will silently miss native movements</strong>. This is the most common "why is
+my dashboard wrong" bug on Arc.</p>
+<p><strong>Blocklist reverts consume gas without a receipt.</strong> A transaction to a screened
+address reverts and burns gas without producing a receipt you can point at. Your
+error handling needs a branch for "it failed and I have nothing to show you."</p>
+<h2 id="the-full-list">The full list</h2>
+<p>Nine Arc-specific behaviours, each with what it does to you:
+<a href="kit.html">the Arc gotcha sheet</a> — it ships with the starter kit.</p>
+<hr />
+<p><strong>Next:</strong> <a href="learn-arc-usdc-decimals.html">The Arc decimals trap: 18 vs 6, one balance</a></p>
+<p><em>Arc Launchpad tracks verified ways to get paid building on Arc.
+<a href="radar.html">See the Opportunity Radar</a> — free, links checked.</em></p>
+</article>
+
+<section style="border-top:1px solid var(--line)"><div class="wrap">
+  <h2>More guides</h2>
+  <ul class="clean">
+    
+    <li><a href="learn-arc-chain-id-rpc.html">Arc Chain ID and RPC endpoints (mainnet + testnet)</a></li>
+    
+    <li><a href="learn-arc-usdc-decimals.html">The Arc decimals trap: 18 vs 6, one balance</a></li>
+    
+    <li><a href="learn-erc-8183-escrow-tutorial.html">ERC-8183: build a USDC escrow job on Arc</a></li>
+    
+    <li><a href="learn-x402-nanopayments-arc.html">x402 nanopayments on Arc for AI agents</a></li>
+    
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Building on Arc and want to get paid for it?</h2>
+  <p class="sub">The Opportunity Radar lists every verified programme funding Arc
+  builders right now — grants, bounties, hackathons — with links checked by hand.
+  It's free.</p>
+  <a class="btn" href="index.html#start">Get the radar</a>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="disc">
+    Independent. Not affiliated with or endorsed by Circle Technology Services,
+    LLC. Not financial, investment, legal or tax advice. Verify every claim at
+    the source link before acting.
+  </div>
+  <div><a href="learn.html">Guides</a></div>
+</div></footer>
+
+<script>
+/* Static build: no server, so the form composes an email instead of POSTing.
+   Honest fallback - it either opens a real mail client or does nothing. */
+(function(){
+  var f = document.querySelector('form[data-static]');
+  if(!f) return;
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var g = function(n){ var el = f.querySelector('[name="'+n+'"]'); return el ? el.value : ''; };
+    var to = 'a-3e7fb6a5ec436b92d5d77bf1611ee463@agents.splox.io';
+    var body = 'Email: ' + g('email') + '\nIntent: ' + g('interest') +
+               '\nNote: ' + g('note') + '\n';
+    window.location.href = 'mailto:' + to +
+      '?subject=' + encodeURIComponent('Arc Launchpad enquiry') +
+      '&body=' + encodeURIComponent(body);
+  });
+})();
+</script>
+</body></html>

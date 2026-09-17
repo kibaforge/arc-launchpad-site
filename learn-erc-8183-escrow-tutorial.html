@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ERC-8183: build a USDC escrow job on Arc — Arc Launchpad</title>
+<meta name="description" content="ERC-8183: build a USDC escrow job on Arc. Verified, dated, and sourced for builders on Circle's Arc network.">
+<link rel="canonical" href="learn-erc-8183-escrow-tutorial.html">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">Arc<span>Launchpad</span></div>
+  <a href="index.html">Home</a>
+  <a href="learn.html">Guides</a>
+  <a href="radar.html">Radar</a>
+  <a href="kit.html">Starter Kit</a>
+  <div class="spacer"></div>
+  <a class="btn" href="index.html#start" style="padding:9px 18px;font-size:14px">Get the radar</a>
+</div></nav>
+
+<article class="wrap prose">
+<h1 id="erc-8183-build-a-usdc-escrow-job-on-arc">ERC-8183: build a USDC escrow job on Arc</h1>
+<p>Escrow is the highest-value thing you can build on Arc right now. Every grant
+recipient, freelance marketplace, trade-finance workflow and agent work-market
+needs conditional settlement, and almost nobody wants to write it twice.</p>
+<p>Arc ships two paths to it. Here is when to use which.</p>
+<h2 id="path-a-fork-circles-production-sample">Path A — fork Circle's production sample</h2>
+<p><a href="https://github.com/circlefin/arc-escrow">https://github.com/circlefin/arc-escrow</a></p>
+<p>This is the fastest route to something real. It combines Circle Wallets, the
+Refund Protocol and the Contract Platform, and includes AI-assisted work
+validation. If you need escrow this week, start here and read the rest of this
+page to understand what you are modifying.</p>
+<h2 id="path-b-erc-8183-the-onchain-job-standard">Path B — ERC-8183, the onchain job standard</h2>
+<p>ERC-8183 defines the job lifecycle as a standard: creation, escrow funding,
+deliverable submission, evaluation, and USDC settlement.</p>
+<p>Tutorial: <a href="https://docs.arc.io/arc/tutorials/create-your-first-erc-8183-job">https://docs.arc.io/arc/tutorials/create-your-first-erc-8183-job</a></p>
+<p>Use this when you want the lifecycle to be legible to other contracts — for
+example an agent marketplace where a third party needs to read job state
+without calling your API.</p>
+<h2 id="the-lifecycle">The lifecycle</h2>
+<pre><code>createJob(brief, amount, evaluator)   -&gt; job id, no funds move
+fund(jobId)  { value: amount }        -&gt; USDC sits in escrow
+submit(jobId, deliverableHash)        -&gt; worker proves delivery
+complete(jobId) | refund(jobId)       -&gt; settlement or refund
+</code></pre>
+<p>On Arc, <code>fund</code> is a <strong>value-bearing call</strong>. Because USDC is the native asset,
+there is no <code>approve()</code> step and no allowance to manage. That removes an entire
+class of UX friction — and a whole category of approval-exploit risk.</p>
+<h2 id="the-client-wrapper">The client wrapper</h2>
+<pre><code class="language-ts">import { ethers } from &quot;ethers&quot;;
+
+const parseNativeUsdc = (a: string | number): bigint =&gt;
+  BigInt(Math.round(Number(a) * 1e6)) * 10n ** 12n;   // 18-decimal native
+
+const FEE = {
+  maxFeePerGas: 20n * 10n ** 9n,      // 20 Gwei floor on Arc
+  maxPriorityFeePerGas: 1n * 10n ** 9n,
+};
+
+async function createAndFund(contract: ethers.Contract, brief: string,
+                             amount: string, evaluator: string) {
+  const briefHash = ethers.keccak256(ethers.toUtf8Bytes(brief));
+
+  // 1. open the job — cheap, no funds move
+  const open = await contract.createJob(briefHash, parseNativeUsdc(amount),
+                                        evaluator, FEE);
+  await open.wait(1);
+
+  const jobId = /* read from the JobCreated event */;
+
+  // 2. fund the escrow — a value-bearing call, no approve() needed
+  const fund = await contract.fund(jobId, { value: parseNativeUsdc(amount), ...FEE });
+  await fund.wait(1);
+
+  return jobId;
+}
+</code></pre>
+<p>Note <code>wait(1)</code>. Arc has <strong>sub-second deterministic finality</strong> — one confirmation
+is final. There is no reorg window, so there is no reason to wait for more.</p>
+<h2 id="design-decisions-that-will-cost-you-if-you-get-them-wrong">Design decisions that will cost you if you get them wrong</h2>
+<p><strong>The evaluator is the trust bottleneck.</strong> Who decides the deliverable is
+acceptable? If you hardcode yourself, you have built a custodian, not escrow.
+Make it pluggable from day one: a multisig, an oracle, or an AI validator with a
+human appeal path.</p>
+<p><strong>Take your fee at funding, not at release.</strong> A fee-on-release means the worker
+receives less than the quoted amount, which breaks their expectation and
+generates support tickets forever. Take it up front, where it is visible.</p>
+<p><strong>Persist the job id against your own record.</strong> The chain has the money; your
+database has the context. Agents crash and restart — the ledger is the only
+memory that survives.</p>
+<p><strong>Handle the no-receipt revert.</strong> A transaction to a blocklisted address reverts
+and consumes gas <strong>without a receipt you can point at</strong>. Your error path needs a
+branch that surfaces the tx hash rather than a generic "failed".</p>
+<p><strong>Don't promise privacy.</strong> Arc Privacy Sector (confidential execution for
+Solidity contracts) is documented in detail and explicitly marked <em>not yet
+available</em>. Design for it; do not sell it.</p>
+<h2 id="what-to-charge-for-this">What to charge for this</h2>
+<p>If you are building escrow for a client, this is a 1–2 week engagement and it is
+the single most requested Arc integration. It is also a legitimate basis for a
+Circle Developer Grant application, which funds milestones tied to integration
+depth.</p>
+<hr />
+<p><strong>Next:</strong> <a href="learn-x402-nanopayments-arc.html">x402 nanopayments on Arc for AI agents</a></p>
+<p><em>Arc Launchpad tracks verified ways to get paid building on Arc.
+<a href="radar.html">See the Opportunity Radar</a> — free, links checked.</em></p>
+</article>
+
+<section style="border-top:1px solid var(--line)"><div class="wrap">
+  <h2>More guides</h2>
+  <ul class="clean">
+    
+    <li><a href="learn-arc-chain-id-rpc.html">Arc Chain ID and RPC endpoints (mainnet + testnet)</a></li>
+    
+    <li><a href="learn-arc-usdc-decimals.html">The Arc decimals trap: 18 vs 6, one balance</a></li>
+    
+    <li><a href="learn-usdc-as-gas-on-arc.html">USDC is the gas token on Arc — and what that breaks</a></li>
+    
+    <li><a href="learn-x402-nanopayments-arc.html">x402 nanopayments on Arc for AI agents</a></li>
+    
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Building on Arc and want to get paid for it?</h2>
+  <p class="sub">The Opportunity Radar lists every verified programme funding Arc
+  builders right now — grants, bounties, hackathons — with links checked by hand.
+  It's free.</p>
+  <a class="btn" href="index.html#start">Get the radar</a>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="disc">
+    Independent. Not affiliated with or endorsed by Circle Technology Services,
+    LLC. Not financial, investment, legal or tax advice. Verify every claim at
+    the source link before acting.
+  </div>
+  <div><a href="learn.html">Guides</a></div>
+</div></footer>
+
+<script>
+/* Static build: no server, so the form composes an email instead of POSTing.
+   Honest fallback - it either opens a real mail client or does nothing. */
+(function(){
+  var f = document.querySelector('form[data-static]');
+  if(!f) return;
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var g = function(n){ var el = f.querySelector('[name="'+n+'"]'); return el ? el.value : ''; };
+    var to = 'a-3e7fb6a5ec436b92d5d77bf1611ee463@agents.splox.io';
+    var body = 'Email: ' + g('email') + '\nIntent: ' + g('interest') +
+               '\nNote: ' + g('note') + '\n';
+    window.location.href = 'mailto:' + to +
+      '?subject=' + encodeURIComponent('Arc Launchpad enquiry') +
+      '&body=' + encodeURIComponent(body);
+  });
+})();
+</script>
+</body></html>

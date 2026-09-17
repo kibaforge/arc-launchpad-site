@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arc Chain ID and RPC endpoints (mainnet + testnet) — Arc Launchpad</title>
+<meta name="description" content="Arc Chain ID and RPC endpoints (mainnet + testnet). Verified, dated, and sourced for builders on Circle's Arc network.">
+<link rel="canonical" href="learn-arc-chain-id-rpc.html">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">Arc<span>Launchpad</span></div>
+  <a href="index.html">Home</a>
+  <a href="learn.html">Guides</a>
+  <a href="radar.html">Radar</a>
+  <a href="kit.html">Starter Kit</a>
+  <div class="spacer"></div>
+  <a class="btn" href="index.html#start" style="padding:9px 18px;font-size:14px">Get the radar</a>
+</div></nav>
+
+<article class="wrap prose">
+<h1 id="arc-chain-id-and-rpc-endpoints-mainnet-testnet">Arc Chain ID and RPC endpoints (mainnet + testnet)</h1>
+<p>Arc mainnet went live on <strong>16 September 2026</strong>. Here are the network parameters,
+confirmed by calling <code>eth_chainId</code> against the live RPCs — not copied from a
+blog post.</p>
+<table>
+<thead>
+<tr>
+<th>Network</th>
+<th>Chain ID</th>
+<th>Hex</th>
+<th>RPC</th>
+<th>Explorer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Arc Mainnet</strong></td>
+<td><code>5042</code></td>
+<td><code>0x13b2</code></td>
+<td><code>https://rpc.mainnet.arc.io</code></td>
+<td><a href="https://explorer.arc.io">https://explorer.arc.io</a></td>
+</tr>
+<tr>
+<td><strong>Arc Testnet</strong></td>
+<td><code>5042002</code></td>
+<td><code>0x4cef52</code></td>
+<td><code>https://rpc.testnet.arc.io</code></td>
+<td><a href="https://explorer.testnet.arc.io">https://explorer.testnet.arc.io</a></td>
+</tr>
+</tbody>
+</table>
+<p>Verify it yourself in one command:</p>
+<pre><code class="language-bash">curl -s -X POST https://rpc.mainnet.arc.io \
+  -H 'Content-Type: application/json' \
+  -d '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;eth_chainId&quot;,&quot;params&quot;:[]}'
+# {&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;result&quot;:&quot;0x13b2&quot;}
+</code></pre>
+<p><code>0x13b2</code> is 5042. <code>0x4cef52</code> is 5042002. If your client shows anything else,
+you are pointed at the wrong network.</p>
+<h2 id="alternate-rpc-providers">Alternate RPC providers</h2>
+<p>Mainnet:</p>
+<ul>
+<li><code>https://rpc.mainnet.arc.io</code></li>
+<li><code>https://rpc.drpc.mainnet.arc.io</code></li>
+<li><code>https://rpc.blockdaemon.mainnet.arc.io</code></li>
+<li><code>https://rpc.quicknode.mainnet.arc.io</code></li>
+<li>Alchemy: <code>https://arc-mainnet.g.alchemy.com/v2/&lt;YOUR_KEY&gt;</code></li>
+</ul>
+<p>Testnet:</p>
+<ul>
+<li><code>https://rpc.testnet.arc.io</code></li>
+<li><code>https://rpc.drpc.testnet.arc.io</code></li>
+<li><code>https://rpc.blockdaemon.testnet.arc.io</code></li>
+<li><code>https://rpc.quicknode.testnet.arc.io</code></li>
+</ul>
+<h2 id="add-arc-to-a-wallet">Add Arc to a wallet</h2>
+<pre><code class="language-json">{
+  &quot;chainId&quot;: &quot;0x13b2&quot;,
+  &quot;chainName&quot;: &quot;Arc&quot;,
+  &quot;nativeCurrency&quot;: { &quot;name&quot;: &quot;USD Coin&quot;, &quot;symbol&quot;: &quot;USDC&quot;, &quot;decimals&quot;: 18 },
+  &quot;rpcUrls&quot;: [&quot;https://rpc.mainnet.arc.io&quot;],
+  &quot;blockExplorerUrls&quot;: [&quot;https://explorer.arc.io&quot;]
+}
+</code></pre>
+<p>Note the native currency: <strong>USDC</strong>, not ETH. Arc has no separate gas token. Your
+users never need to acquire a second asset to pay fees — but every piece of
+tooling that assumes <code>nativeCurrency.decimals === 18</code> being <em>ETH</em> needs a second
+look. See <a href="learn-arc-usdc-decimals.html">the decimals trap</a>.</p>
+<h2 id="add-arc-to-ethers">Add Arc to ethers</h2>
+<pre><code class="language-ts">import { ethers } from &quot;ethers&quot;;
+
+const provider = new ethers.JsonRpcProvider(&quot;https://rpc.mainnet.arc.io&quot;, {
+  chainId: 5042,
+  name: &quot;Arc&quot;,
+});
+</code></pre>
+<h2 id="add-arc-to-viem">Add Arc to viem</h2>
+<pre><code class="language-ts">import { defineChain } from &quot;viem&quot;;
+
+export const arcMainnet = defineChain({
+  id: 5042,
+  name: &quot;Arc&quot;,
+  nativeCurrency: { name: &quot;USD Coin&quot;, symbol: &quot;USDC&quot;, decimals: 18 },
+  rpcUrls: { default: { http: [&quot;https://rpc.mainnet.arc.io&quot;] } },
+  blockExplorers: { default: { name: &quot;Arc Explorer&quot;, url: &quot;https://explorer.arc.io&quot; } },
+});
+</code></pre>
+<h2 id="getting-testnet-usdc">Getting testnet USDC</h2>
+<p>Testnet USDC comes from the Circle faucet at <a href="https://faucet.circle.com">https://faucet.circle.com</a>. You
+need it before you can send anything, because it is also the gas token.</p>
+<h2 id="contract-addresses">Contract addresses</h2>
+<p>USDC's optional ERC-20 interface is at
+<code>0x3600000000000000000000000000000000000000</code> on <strong>both</strong> mainnet and testnet —
+which is a coincidence worth knowing about, because other addresses do differ.</p>
+<p>Always read the canonical table rather than trusting a tutorial:
+<a href="https://docs.arc.io/arc/references/contract-addresses.md">https://docs.arc.io/arc/references/contract-addresses.md</a></p>
+<hr />
+<p><strong>Next:</strong> <a href="learn-usdc-as-gas-on-arc.html">USDC is the gas token on Arc — and what that breaks</a></p>
+<p><em>Arc Launchpad tracks verified ways to get paid building on Arc.
+<a href="radar.html">See the Opportunity Radar</a> — free, links checked.</em></p>
+</article>
+
+<section style="border-top:1px solid var(--line)"><div class="wrap">
+  <h2>More guides</h2>
+  <ul class="clean">
+    
+    <li><a href="learn-arc-usdc-decimals.html">The Arc decimals trap: 18 vs 6, one balance</a></li>
+    
+    <li><a href="learn-erc-8183-escrow-tutorial.html">ERC-8183: build a USDC escrow job on Arc</a></li>
+    
+    <li><a href="learn-usdc-as-gas-on-arc.html">USDC is the gas token on Arc — and what that breaks</a></li>
+    
+    <li><a href="learn-x402-nanopayments-arc.html">x402 nanopayments on Arc for AI agents</a></li>
+    
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Building on Arc and want to get paid for it?</h2>
+  <p class="sub">The Opportunity Radar lists every verified programme funding Arc
+  builders right now — grants, bounties, hackathons — with links checked by hand.
+  It's free.</p>
+  <a class="btn" href="index.html#start">Get the radar</a>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="disc">
+    Independent. Not affiliated with or endorsed by Circle Technology Services,
+    LLC. Not financial, investment, legal or tax advice. Verify every claim at
+    the source link before acting.
+  </div>
+  <div><a href="learn.html">Guides</a></div>
+</div></footer>
+
+<script>
+/* Static build: no server, so the form composes an email instead of POSTing.
+   Honest fallback - it either opens a real mail client or does nothing. */
+(function(){
+  var f = document.querySelector('form[data-static]');
+  if(!f) return;
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var g = function(n){ var el = f.querySelector('[name="'+n+'"]'); return el ? el.value : ''; };
+    var to = 'a-3e7fb6a5ec436b92d5d77bf1611ee463@agents.splox.io';
+    var body = 'Email: ' + g('email') + '\nIntent: ' + g('interest') +
+               '\nNote: ' + g('note') + '\n';
+    window.location.href = 'mailto:' + to +
+      '?subject=' + encodeURIComponent('Arc Launchpad enquiry') +
+      '&body=' + encodeURIComponent(body);
+  });
+})();
+</script>
+</body></html>

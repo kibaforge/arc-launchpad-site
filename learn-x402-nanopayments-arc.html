@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>x402 nanopayments on Arc for AI agents — Arc Launchpad</title>
+<meta name="description" content="x402 nanopayments on Arc for AI agents. Verified, dated, and sourced for builders on Circle's Arc network.">
+<link rel="canonical" href="learn-x402-nanopayments-arc.html">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">Arc<span>Launchpad</span></div>
+  <a href="index.html">Home</a>
+  <a href="learn.html">Guides</a>
+  <a href="radar.html">Radar</a>
+  <a href="kit.html">Starter Kit</a>
+  <div class="spacer"></div>
+  <a class="btn" href="index.html#start" style="padding:9px 18px;font-size:14px">Get the radar</a>
+</div></nav>
+
+<article class="wrap prose">
+<h1 id="x402-nanopayments-on-arc-for-ai-agents">x402 nanopayments on Arc for AI agents</h1>
+<p>An AI agent that pays per API call needs three things from its settlement layer:
+<strong>predictable cost, instant finality, and no volatile token to hold.</strong> Arc is the
+first L1 where all three are true at once, which is why the agentic economy is
+where the ecosystem programme is concentrating its funding.</p>
+<h2 id="the-flow">The flow</h2>
+<pre><code>1. Agent  -&gt; GET /premium-endpoint
+2. Server -&gt; 402 Payment Required  + price quote
+3. Agent  -&gt; settle sub-cent USDC on Arc
+4. Agent  -&gt; GET /premium-endpoint  with proof of payment
+5. Server -&gt; 200 + payload
+</code></pre>
+<p>That is the whole protocol. The interesting part is what happens at step 3.</p>
+<h2 id="why-this-only-works-on-arc">Why this only works on Arc</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Why most chains fail it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fee must be predictable</td>
+<td>Volatile native gas token — an agent cannot budget against it</td>
+</tr>
+<tr>
+<td>Fee must be smaller than the payment</td>
+<td>A $0.0004 API call cannot carry a $0.30 fee</td>
+</tr>
+<tr>
+<td>Settlement must be instant</td>
+<td>Probabilistic finality means retries, timeouts, ambiguity</td>
+</tr>
+<tr>
+<td>No second token to hold</td>
+<td>Agents holding ETH to pay gas is an operational nightmare</td>
+</tr>
+</tbody>
+</table>
+<p>Arc answers all four: USDC-denominated fees with EWMA-smoothed EIP-1559 pricing
+(design target ~$0.001 per transfer), sub-second deterministic finality, and no
+separate gas asset.</p>
+<h2 id="the-client">The client</h2>
+<pre><code class="language-ts">interface PaymentQuote {
+  amount: string;    // &quot;0.0004&quot; — fractions of a cent
+  payTo: string;
+  scheme: string;
+  network: string;
+  nonce: string;
+}
+
+async function paidFetch(
+  url: string,
+  settle: (q: PaymentQuote) =&gt; Promise&lt;{ proof: string }&gt;,
+  maxSpendPerCall = &quot;0.01&quot;,
+): Promise&lt;Response&gt; {
+  let res = await fetch(url);
+
+  if (res.status === 402) {
+    const quote: PaymentQuote = await res.clone().json();
+
+    // Hard ceiling. An agent in a retry loop with no cap is a drained wallet.
+    if (Number(quote.amount) &gt; Number(maxSpendPerCall)) {
+      throw new Error(`Refusing ${quote.amount} USDC: over per-call ceiling`);
+    }
+
+    const { proof } = await settle(quote);
+    res = await fetch(url, { headers: { &quot;X-PAYMENT&quot;: proof } });
+  }
+
+  return res;
+}
+</code></pre>
+<p>The server side, using Circle Nanopayments, is in the official sample:
+<a href="https://github.com/circlefin/arc-nanopayments">https://github.com/circlefin/arc-nanopayments</a></p>
+<h2 id="guardrails-you-must-ship-if-real-money-is-involved">Guardrails you must ship if real money is involved</h2>
+<p>This is the part that separates a demo from a product, and it is where clients
+pay for help.</p>
+<ol>
+<li><strong>A per-call ceiling AND a per-hour budget.</strong> Both, not either. A ceiling
+   without a budget still allows 10,000 calls.</li>
+<li><strong>Idempotency.</strong> Reuse the nonce so a retry cannot double-pay. Agents retry on
+   timeout by nature.</li>
+<li><strong>Persist every settlement with the task id.</strong> Agents restart; the ledger is
+   the only memory that survives a crash.</li>
+<li><strong>Give the agent an identity.</strong> ERC-8004 provides an onchain registry for
+   agent identity, reputation events and credential verification, so a
+   counterparty has something to price risk against.
+   <a href="https://docs.arc.io/arc/tutorials/register-your-first-ai-agent">https://docs.arc.io/arc/tutorials/register-your-first-ai-agent</a></li>
+<li><strong>Keep spending policy outside the agent.</strong> Circle Agent Stack provides
+   policy-controlled agent wallets. If the agent can rewrite its own limits, it
+   has no limits.</li>
+</ol>
+<h2 id="the-commercial-angle">The commercial angle</h2>
+<p>The obvious product is "sell API access to agents." The less obvious and more
+valuable one is the infrastructure around it: <strong>metering, spend policy, and
+settlement reporting.</strong> Every company deploying agents will need to answer
+"what did our agents spend, on what, and who authorised it" — and almost nobody
+has built that yet.</p>
+<p>Arc's own builder call names this frontier directly: <em>autonomous businesses</em> —
+zero-person companies that earn, spend and settle entirely onchain.</p>
+<hr />
+<p><strong>Next:</strong> <a href="kit.html">the Arc gotcha sheet</a> — nine behaviours that differ from vanilla EVM.</p>
+<p><em>Arc Launchpad tracks verified ways to get paid building on Arc.
+<a href="radar.html">See the Opportunity Radar</a> — free, links checked.</em></p>
+</article>
+
+<section style="border-top:1px solid var(--line)"><div class="wrap">
+  <h2>More guides</h2>
+  <ul class="clean">
+    
+    <li><a href="learn-arc-chain-id-rpc.html">Arc Chain ID and RPC endpoints (mainnet + testnet)</a></li>
+    
+    <li><a href="learn-arc-usdc-decimals.html">The Arc decimals trap: 18 vs 6, one balance</a></li>
+    
+    <li><a href="learn-erc-8183-escrow-tutorial.html">ERC-8183: build a USDC escrow job on Arc</a></li>
+    
+    <li><a href="learn-usdc-as-gas-on-arc.html">USDC is the gas token on Arc — and what that breaks</a></li>
+    
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Building on Arc and want to get paid for it?</h2>
+  <p class="sub">The Opportunity Radar lists every verified programme funding Arc
+  builders right now — grants, bounties, hackathons — with links checked by hand.
+  It's free.</p>
+  <a class="btn" href="index.html#start">Get the radar</a>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="disc">
+    Independent. Not affiliated with or endorsed by Circle Technology Services,
+    LLC. Not financial, investment, legal or tax advice. Verify every claim at
+    the source link before acting.
+  </div>
+  <div><a href="learn.html">Guides</a></div>
+</div></footer>
+
+<script>
+/* Static build: no server, so the form composes an email instead of POSTing.
+   Honest fallback - it either opens a real mail client or does nothing. */
+(function(){
+  var f = document.querySelector('form[data-static]');
+  if(!f) return;
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var g = function(n){ var el = f.querySelector('[name="'+n+'"]'); return el ? el.value : ''; };
+    var to = 'a-3e7fb6a5ec436b92d5d77bf1611ee463@agents.splox.io';
+    var body = 'Email: ' + g('email') + '\nIntent: ' + g('interest') +
+               '\nNote: ' + g('note') + '\n';
+    window.location.href = 'mailto:' + to +
+      '?subject=' + encodeURIComponent('Arc Launchpad enquiry') +
+      '&body=' + encodeURIComponent(body);
+  });
+})();
+</script>
+</body></html>

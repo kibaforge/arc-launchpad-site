@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arc Starter Kit — the three things everyone builds</title>
+<meta name="description" content="Working code for USDC payments, escrow settlement and agent micropayments on Arc, plus the gotchas that cost you a weekend.">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">Arc<span>Launchpad</span></div>
+  <a href="index.html">Home</a>
+  <a href="radar.html">Radar</a>
+  <a href="index.html#pricing">Pricing</a>
+  <div class="spacer"></div>
+  
+  <a class="btn" href="kit.html#pay" style="padding:9px 18px;font-size:14px">Buy the kit — $149</a>
+  
+</div></nav>
+
+<header class="hero" style="padding:56px 0 40px"><div class="wrap">
+  <div class="eyebrow">$149 one-time</div>
+  <h1 style="font-size:clamp(30px,4.4vw,46px)">The Arc Starter Kit</h1>
+  <p class="lede">The three modules every Arc app needs, written against the real network
+  parameters, plus the reference sheet of Arc-specific behaviour that will cost you a weekend
+  if you discover it the hard way.</p>
+  <a class="btn" href="#pay">Get the kit — $149</a>
+</div></header>
+
+<section><div class="wrap">
+  <h2>Module 1 — Send USDC</h2>
+  <p class="sub">On Arc, USDC <em>is</em> the gas token. That changes the transaction you write.</p>
+<pre>import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const wallet   = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+const tx = await wallet.sendTransaction({
+  to: recipient,
+  value: ethers.parseUnits("1", 6),          // native send, 6-dec interface
+  maxFeePerGas: ethers.parseUnits("20", "gwei"), // 20 gwei floor on Arc
+});
+// Arc finalises in under a second. No confirmation loop needed.</pre>
+  <ul class="clean">
+    <li><b>20 Gwei is a floor, not a suggestion.</b> Below it, transactions can sit pending forever or fail outright.</li>
+    <li><b>Two decimals, one balance.</b> Native accounting is 18 decimals; the ERC-20 interface is 6. Same underlying balance, not two tokens.</li>
+    <li><b>There is no wrapped USDC.</b> The native asset satisfies <code>IERC20</code> directly — no WETH-style wrapper to deploy.</li>
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Module 2 — Conditional escrow settlement</h2>
+  <p class="sub">Fund a job, submit a deliverable, release on verified completion. This is the
+  pattern behind Arc's own escrow sample and the ERC-8183 job standard — it is what you need for
+  freelance payouts, milestone trade finance, and agent work markets.</p>
+<pre>// Shape of the flow, not a copy-paste deploy:
+//  1. createJob(brief, amount, evaluator)   -> job id
+//  2. fund(jobId)  { value: amount }        -> USDC sits in escrow
+//  3. submit(jobId, deliverableHash)        -> worker proves delivery
+//  4. complete(jobId) | refund(jobId)       -> settlement or Refund Protocol
+//
+// Use Circle's production sample as the base:
+//   github.com/circlefin/arc-escrow</pre>
+  <ul class="clean">
+    <li><b>Escrow is the highest-value thing you can sell right now.</b> Every grant recipient and every agent marketplace needs it.</li>
+    <li><b>Sub-second finality means the release is one transaction</b>, not a wait-and-poll.</li>
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Module 3 — Agent micropayments (x402)</h2>
+  <p class="sub">An agent paying fractions of a cent per API call. This is the use case Arc was
+  explicitly built for, and it is where the ecosystem programme is putting its money.</p>
+<pre>// Client: agent hits a premium endpoint
+const res = await fetch(PAID_ENDPOINT);
+if (res.status === 402) {
+  // Server quotes a price; agent settles in USDC via Circle Nanopayments
+  const quote = await res.json();
+  const receipt = await payNanopayment(quote);      // sub-cent, sub-second
+  return fetch(PAID_ENDPOINT, { headers: { "X-PAYMENT": receipt } });
+}
+// Base sample: github.com/circlefin/arc-nanopayments</pre>
+  <ul class="clean">
+    <li><b>Predictable fees are the whole point.</b> An agent cannot budget against a volatile gas token.</li>
+    <li><b>Paired with ERC-8004 identity</b>, an agent can hold reputation and get paid autonomously.</li>
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Plus: the Arc gotcha reference</h2>
+  <p class="sub">The sheet we wish existed on day one. Nine behaviours that differ from vanilla
+  EVM, each one of which has cost somebody a day.</p>
+  <table>
+    <tr><th>Gotcha</th><th>What it does to you</th></tr>
+    <tr><td><b>USDC is the gas token</b></td><td>Your fee logic, your accounting and your UX copy all change</td></tr>
+    <tr><td><b>18 vs 6 decimals</b></td><td>Native accounting is 18, ERC-20 interface is 6 — mix them and you are off by 10<sup>12</sup></td></tr>
+    <tr><td><b>System emitter logs every transfer</b></td><td>Indexers that watch the ERC-20 address miss native movements</td></tr>
+    <tr><td><b>20 Gwei maxFeePerGas floor</b></td><td>Under it, transactions hang</td></tr>
+    <tr><td><b>Blocklist reverts burn gas with no receipt</b></td><td>Your error handling needs a branch that has no transaction to point at</td></tr>
+    <tr><td><b><code>address(0)</code> sends revert</b></td><td>They succeed on most chains; here they do not</td></tr>
+    <tr><td><b>Osaka EVM baseline</b></td><td>Most contracts deploy unchanged, but check before you assume</td></tr>
+    <tr><td><b>Privacy is roadmap, not shipped</b></td><td>APS is documented but explicitly "not yet available" — do not sell it</td></tr>
+    <tr><td><b>Testnet vs mainnet addresses</b></td><td>Some are identical, some are not. Read the table, do not guess</td></tr>
+  </table>
+</div></section>
+
+<section><div class="wrap">
+  <h2>What you get for $149</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>In the box</h3>
+      <ul class="clean">
+        <li>All three modules, TypeScript, viem + ethers adapters</li>
+        <li>Arc gotcha reference (the table above, expanded)</li>
+        <li>Network config for testnet + mainnet</li>
+        <li>30 days of email support</li>
+      </ul>
+    </div>
+    <div class="card hi">
+      <h3>Honest about the limits</h3>
+      <ul class="clean">
+        <li>This is <b>not</b> a course and not a get-rich plan</li>
+        <li>You still need a real product and real customers</li>
+        <li>It saves you roughly <b>1–2 weeks</b> of setup. That is the whole promise.</li>
+        <li>Full refund within 14 days, no questions</li>
+      </ul>
+      <div class="row" style="margin-top:18px"><a class="btn" href="#pay">Get the kit — $149</a></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="pay"><div class="wrap">
+  <h2>Get the kit</h2>
+  <div class="card" style="max-width:660px">
+    
+    <div class="paylabel">Pay $149 in USDC</div>
+    <code class="addr">0x45b979292e0ad3DcAf4F39b0925c783F81A581f8</code>
+    <div class="paynote">
+      Send exactly <b>$149 in USDC on Arc</b> to that address, then email the
+      transaction hash to <a href="mailto:a-3e7fb6a5ec436b92d5d77bf1611ee463@agents.splox.io">a-3e7fb6a5ec436b92d5d77bf1611ee463@agents.splox.io</a> and the kit
+      arrives in your inbox.
+      <br><br>
+      Why USDC and not a card: it settles in under a second for about a tenth of a
+      cent, and it needs no account from either of us. No processor sits between you
+      and the purchase holding your details.
+      <br><br>
+      <b>Refund within 14 days, no questions.</b> If the kit does not work for you,
+      reply to that address and you get your money back.
+    </div>
+    
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="disc">
+    Independent. Not affiliated with or endorsed by Circle Technology Services, LLC. Code samples
+    are illustrative and must be reviewed and tested before production use, especially anything
+    touching funds. Not financial, investment, legal or tax advice. You are responsible for
+    compliance in your jurisdiction.
+  </div>
+  <div><a href="index.html">Home</a></div>
+</div></footer>
+
+<script>
+/* Static build: no server, so the form composes an email instead of POSTing.
+   Honest fallback - it either opens a real mail client or does nothing. */
+(function(){
+  var f = document.querySelector('form[data-static]');
+  if(!f) return;
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var g = function(n){ var el = f.querySelector('[name="'+n+'"]'); return el ? el.value : ''; };
+    var to = 'a-3e7fb6a5ec436b92d5d77bf1611ee463@agents.splox.io';
+    var body = 'Email: ' + g('email') + '\nIntent: ' + g('interest') +
+               '\nNote: ' + g('note') + '\n';
+    window.location.href = 'mailto:' + to +
+      '?subject=' + encodeURIComponent('Arc Launchpad enquiry') +
+      '&body=' + encodeURIComponent(body);
+  });
+})();
+</script>
+</body></html>

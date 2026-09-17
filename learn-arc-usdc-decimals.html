@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Arc decimals trap: 18 vs 6, one balance — Arc Launchpad</title>
+<meta name="description" content="The Arc decimals trap: 18 vs 6, one balance. Verified, dated, and sourced for builders on Circle's Arc network.">
+<link rel="canonical" href="learn-arc-usdc-decimals.html">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">Arc<span>Launchpad</span></div>
+  <a href="index.html">Home</a>
+  <a href="learn.html">Guides</a>
+  <a href="radar.html">Radar</a>
+  <a href="kit.html">Starter Kit</a>
+  <div class="spacer"></div>
+  <a class="btn" href="index.html#start" style="padding:9px 18px;font-size:14px">Get the radar</a>
+</div></nav>
+
+<article class="wrap prose">
+<h1 id="the-arc-decimals-trap-18-vs-6-one-balance">The Arc decimals trap: 18 vs 6, one balance</h1>
+<p>This is the bug that will cost you the most money on Arc, and it is easy to walk
+into because the code looks correct.</p>
+<h2 id="the-situation">The situation</h2>
+<p>On Arc, USDC exists in two interfaces over <strong>one underlying balance</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Interface</th>
+<th>Decimals</th>
+<th>Address</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Native (gas + <code>value</code> transfers)</td>
+<td><strong>18</strong></td>
+<td>— (it's the native asset)</td>
+</tr>
+<tr>
+<td>ERC-20 (optional)</td>
+<td><strong>6</strong></td>
+<td><code>0x3600000000000000000000000000000000000000</code></td>
+</tr>
+</tbody>
+</table>
+<p>They are <strong>not two tokens</strong>. There is no conversion, no bridge, no wrapper. The
+same USDC sits behind both. What differs is only the decimal scaling you use to
+talk to it.</p>
+<h2 id="why-this-is-dangerous">Why this is dangerous</h2>
+<p>Elsewhere in the EVM world, the native asset is ETH at 18 decimals and USDC is a
+separate ERC-20 at 6. Developers carry that habit over, and then:</p>
+<pre><code class="language-ts">// WRONG on Arc — 6 decimals applied to an 18-decimal interface
+await wallet.sendTransaction({ to, value: ethers.parseUnits(&quot;1&quot;, 6) });
+</code></pre>
+<p>That sends <strong>0.000000000001 USDC</strong>, not 1 USDC. Off by 10¹². In the other
+direction you try to send a trillion dollars and the transaction reverts.</p>
+<p>Both failures are quiet. The first one just... sends almost nothing, and you find
+out when a customer says they never got paid.</p>
+<h2 id="the-fix-one-convention-per-module">The fix: one convention per module</h2>
+<p>Pick a convention, name it in the function, and never convert implicitly.</p>
+<pre><code class="language-ts">/** Native interface — 18 decimals. For gas and `value` transfers. */
+export const parseNativeUsdc = (amount: string | number): bigint =&gt;
+  BigInt(Math.round(Number(amount) * 1e6)) * 10n ** 12n;
+
+/** ERC-20 interface — 6 decimals. For transferFrom / approve / allowance. */
+export const parseErc20Usdc = (amount: string | number): bigint =&gt;
+  BigInt(Math.round(Number(amount) * 1e6));
+
+/** Format raw native USDC back to a human string. */
+export const formatNativeUsdc = (raw: bigint): string =&gt;
+  (Number(raw / 10n ** 12n) / 1e6).toString();
+</code></pre>
+<p>Three rules that prevent the whole class of bug:</p>
+<ol>
+<li><strong>Name the function after the interface</strong>, not after the token. <code>parseNativeUsdc</code>
+   and <code>parseErc20Usdc</code> cannot be confused by someone reading quickly at 2am.
+   <code>parseUsdc</code> can.</li>
+<li><strong>Never write a bare <code>1e6</code> or <code>1e18</code> in business logic.</strong> Every literal lives
+   in one config file.</li>
+<li><strong>Assert at the boundary.</strong> If a value crosses from a native call into an
+   ERC-20 call, check the magnitude. A number that is 10¹² too big is obvious if
+   you look.</li>
+</ol>
+<h2 id="why-arc-does-this">Why Arc does this</h2>
+<p>The native asset needs 18 decimals because it is the gas token and gas
+accounting is 18-decimal throughout the EVM. The ERC-20 interface stays at 6
+because every USDC integration in existence expects 6, and breaking that would
+break every wallet, indexer and payment processor on the planet.</p>
+<p>So Arc keeps both and makes them share a balance. It is the right call. It just
+means you have to be explicit about which one you are holding.</p>
+<h2 id="related-traps">Related traps</h2>
+<ul>
+<li><strong>There is no wrapped USDC.</strong> No WETH-style wrapper to deploy, because the
+  native token already satisfies <code>IERC20</code>. If a tutorial tells you to wrap,
+  it was written for a different chain.</li>
+<li><strong>The system emitter logs every transfer</strong> at
+  <code>0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE</code>. Indexers watching only the ERC-20
+  address miss native movements.</li>
+<li><strong><code>address(0)</code> sends revert.</strong> They succeed on most chains. Find your
+  placeholder-address patterns now.</li>
+</ul>
+<hr />
+<p><strong>Next:</strong> <a href="learn-erc-8183-escrow-tutorial.html">ERC-8183: build a USDC escrow job on Arc</a></p>
+<p><em>Arc Launchpad tracks verified ways to get paid building on Arc.
+<a href="radar.html">See the Opportunity Radar</a> — free, links checked.</em></p>
+</article>
+
+<section style="border-top:1px solid var(--line)"><div class="wrap">
+  <h2>More guides</h2>
+  <ul class="clean">
+    
+    <li><a href="learn-arc-chain-id-rpc.html">Arc Chain ID and RPC endpoints (mainnet + testnet)</a></li>
+    
+    <li><a href="learn-erc-8183-escrow-tutorial.html">ERC-8183: build a USDC escrow job on Arc</a></li>
+    
+    <li><a href="learn-usdc-as-gas-on-arc.html">USDC is the gas token on Arc — and what that breaks</a></li>
+    
+    <li><a href="learn-x402-nanopayments-arc.html">x402 nanopayments on Arc for AI agents</a></li>
+    
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Building on Arc and want to get paid for it?</h2>
+  <p class="sub">The Opportunity Radar lists every verified programme funding Arc
+  builders right now — grants, bounties, hackathons — with links checked by hand.
+  It's free.</p>
+  <a class="btn" href="index.html#start">Get the radar</a>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="disc">
+    Independent. Not affiliated with or endorsed by Circle Technology Services,
+    LLC. Not financial, investment, legal or tax advice. Verify every claim at
+    the source link before acting.
+  </div>
+  <div><a href="learn.html">Guides</a></div>
+</div></footer>
+
+<script>
+/* Static build: no server, so the form composes an email instead of POSTing.
+   Honest fallback - it either opens a real mail client or does nothing. */
+(function(){
+  var f = document.querySelector('form[data-static]');
+  if(!f) return;
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var g = function(n){ var el = f.querySelector('[name="'+n+'"]'); return el ? el.value : ''; };
+    var to = 'a-3e7fb6a5ec436b92d5d77bf1611ee463@agents.splox.io';
+    var body = 'Email: ' + g('email') + '\nIntent: ' + g('interest') +
+               '\nNote: ' + g('note') + '\n';
+    window.location.href = 'mailto:' + to +
+      '?subject=' + encodeURIComponent('Arc Launchpad enquiry') +
+      '&body=' + encodeURIComponent(body);
+  });
+})();
+</script>
+</body></html>
